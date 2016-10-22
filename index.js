@@ -1,10 +1,7 @@
 var app = require('express')();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
-app.get('/', function (req, res) {
-    res.send('Hello World!');
-    //process.exit()
-});
+
 
 var client_host = null;
 var connected = {};
@@ -24,7 +21,14 @@ function findUser(user) {
     }
     return false;
 }
-io.of('/sockets').on('connection', function (socket) {
+
+
+
+io.on('connection', function (socket) {
+ console.log('a user connected '+client_host);
+})
+
+io.on('connection', function (socket) {
 
     console.log('a user connected '+client_host);
     socket.join(client_host);
