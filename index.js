@@ -1,6 +1,15 @@
+var fs = require( 'fs' );
 var app = require('express')();
-var http = require('http').Server(app);
-var io = require('socket.io')(http);
+var https        = require('https');
+var server = https.createServer({
+    key: fs.readFileSync('./testnode.2gt.biz.key'),
+    cert: fs.readFileSync('./testnode.2gt.biz.crt'),
+    requestCert: false,
+    rejectUnauthorized: false
+},app);
+server.listen(80);
+
+var io = require('socket.io').listen(server);
 
 
 var client_host = null;
@@ -85,6 +94,3 @@ io.on('connection', function (socket) {
 
 });
 
-http.listen(3000, function () {
-    console.log('listening on *:3000');
-});
