@@ -1,13 +1,24 @@
+var args = process.argv.slice(2);
+
+
 var fs = require( 'fs' );
 var app = require('express')();
-var https        = require('https');
-var server = https.createServer({
-    key: fs.readFileSync('./testnode.2gt.biz.key'),
-    cert: fs.readFileSync('./testnode.2gt.biz.crt'),
-    requestCert: false,
-    rejectUnauthorized: false
-},app);
-server.listen(443);
+if ( args.indexOf('ssl')==-1){
+    var http        = require('http');
+    var server = http.createServer();
+    server.listen(3000);
+}else{
+    var https        = require('https');
+    var server = https.createServer({
+            key: fs.readFileSync(__dirname + '/key.pem'),
+            cert: fs.readFileSync(__dirname + '/cert.pem')
+    },app);
+    server.listen(443);
+}
+
+
+
+
 
 var io = require('socket.io').listen(server);
 
@@ -15,16 +26,12 @@ var io = require('socket.io').listen(server);
 var client_host = null;
 var connected = {};
 
-io.use(function(socket, next) {
-    var handshakeData = socket.request;
-    client_host = handshakeData._query['host'];
-    next();
-});
 
 
-function findUser(user) {
-    for (var i in connected) {
-        if (connected[i].user == user) {
+
+function findUser(host, user) {
+    for (var i in connected[host]) {
+        if (connected[host][i].user == user) {
             return true;
         }
     }
@@ -33,20 +40,22 @@ function findUser(user) {
 
 
 
-io.on('connection', function (socket) {
- console.log('a user connected '+client_host);
-})
 
 io.on('connection', function (socket) {
+
+    var handshakeData = socket.request;
+    client_host = handshakeData._query['host'];
 
     console.log('a user connected '+client_host);
     socket.join(client_host);
 
-    socket.in(client_host).emit('connect');
+    io.sockets.in(client_host).emit('connect');
 
     //  клиент отключился, по его ID исключаем его из массива
     socket.on('disconnect', function (value) {
         socket.leave(client_host);
+        console.log(connected)
+
         if (connected[client_host]!=undefined){
             connected[client_host] = connected[client_host].filter(function (rec) {
                 if (rec.socket != socket.id) {
@@ -55,36 +64,36 @@ io.on('connection', function (socket) {
                 return false;
             });
         }
-
+        console.log(connected)
         //  оповещаем всех что изменился список
-        socket.in(client_host).broadcast.emit('who_is_online', connected[client_host]);
+        io.sockets.in(client_host).emit('who_is_online', connected[client_host]);
     });
 
 
     //  новое сообщение
     socket.on('message', function (obj) {
-        socket.in(client_host).broadcast.emit('reload', obj);
+        socket.broadcast.in(client_host).emit('reload', obj);
     });
 
     //  Новый чат
     socket.on('chat', function (chat, users) {
-        socket.in(client_host).broadcast.emit('create_chat', {chat: chat, users: users});
+        socket.broadcast.in(client_host).emit('create_chat', {chat: chat, users: users});
     });
 
     // чтение сообщений в чате
     socket.on('client:read_chat', function (chat_id) {
-        socket.in(client_host).broadcast.emit('server:read_chat', chat_id);
+        socket.broadcast.in(client_host).emit('server:read_chat', chat_id);
     });
 
     // клиент залогинился
     socket.on('client:signin', function (user_id) {
-        socket.in(client_host).broadcast.emit('server:signin', user_id);
+        socket.broadcast.in(client_host).emit('server:signin', user_id);
     });
 
     //  клиент сообщает свой ID
     // сервер в ответ рассказывает ему кто сейчас в сети
     socket.on('client:connect', function (user_id) {
-        if (!findUser(user_id)) {
+        if (!findUser(client_host, user_id)) {
             connected[client_host] = connected[client_host]==undefined ? connected[client_host]=[] : connected[client_host];
             connected[client_host].push({user: user_id, socket: socket.id});
         }
