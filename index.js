@@ -59,11 +59,13 @@ io.on('connection', function (socket) {
                 if (rec.socket != socket.id) {
                     return true;
                 }
+                io.sockets.in(client_host).emit('debug', 'User disconnected '+socket.user);
                 return false;
             });
         }
         //  оповещаем всех что изменился список
         io.sockets.in(client_host).emit('who_is_online', connected[client_host]);
+
     });
 
 
@@ -95,6 +97,8 @@ io.on('connection', function (socket) {
             connected[client_host].push({user: user_id, socket: socket.id});
         }
         io.sockets.in(client_host).emit('who_is_online', connected[client_host]);
+        io.sockets.in(client_host).emit('debug', 'User connected '+user_id);
+
     });
 
 
