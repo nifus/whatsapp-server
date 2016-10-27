@@ -7,6 +7,8 @@ for( var i in args ){
     }
 }
 
+var client_host = null;
+var connected = [];
 
 var fs = require( 'fs' );
 var app = require('express')();
@@ -26,8 +28,6 @@ if ( args.indexOf('ssl')==-1){
 
 
 var io = require('socket.io').listen(server);
-var client_host = null;
-var connected = [];
 
 
 function findUser(user) {
@@ -50,27 +50,43 @@ io.on('connection', function (socket) {
    // console.log('a user connected '+client_host);
   // socket.join(client_host);
 
-    io.sockets.emit('connect');
+    io.sockets.emit('connect', socket.id);
 
     //  клиент отключился, по его ID исключаем его из массива
-    socket.on('disconnect', function (value) {
+    socket.on('disconnect', function (value ) {
+
             connected = connected.filter(function (rec) {
-                if (rec.socket != socket.id) {
+                if (rec.socket !== socket.id) {
                     return true;
                 }
-                io.sockets.emit('debug', 'User disconnected '+socket.user);
                 return false;
             });
-        
+
+            io.sockets.emit('debug', connected.length);
+
         //  оповещаем всех что изменился список
         io.sockets.emit('who_is_online', connected);
-
+    
     });
+    
 
 
     //  новое сообщение
     socket.on('message', function (obj) {
-        socket.broadcast.emit('reload', obj);
+        var send = false;
+        if (obj.user_to!=undefined){
+            for( var i in connected ){
+                if (connected[i].user===obj.user_to ){
+                    io.to(connected[i].socket).emit('reload', obj);
+                    send = true;
+                    break;
+                }
+            }
+        }
+        if ( send==false ){
+            socket.broadcast.emit('reload', obj);
+        }
+        
     });
 
     //  Новый чат
@@ -79,8 +95,21 @@ io.on('connection', function (socket) {
     });
 
     // чтение сообщений в чате
-    socket.on('client:read_chat', function (chat_id) {
-        socket.broadcast.emit('server:read_chat', chat_id);
+    socket.on('client:read_chat', function (obj) {
+        var send = false;
+        if (obj.user_to!=undefined){
+            for( var i in connected ){
+                if (connected[i].user===obj.user_to ){
+                    io.to(connected[i].socket).emit('server:read_chat', obj);
+                    send = true;
+                    break;
+                }
+            }
+        }
+        if ( send==false ){
+            socket.broadcast.emit('server:read_chat', obj.chat_id);
+        }
+
     });
 
     // клиент залогинился
@@ -99,6 +128,9 @@ io.on('connection', function (socket) {
         io.sockets.emit('debug', 'User connected '+user_id);
 
     });
+    
+
+
 
 
 });
