@@ -86,7 +86,22 @@ io.on('connection', function (socket) {
         if ( send==false ){
             socket.broadcast.emit('reload', obj);
         }
-        
+    });
+
+    socket.on('message-delete', function (obj) {
+        var send = false;
+        if (obj.user_to!=undefined){
+            for( var i in connected ){
+                if (connected[i].user===obj.user_to ){
+                    io.to(connected[i].socket).emit('message:delete', obj);
+                    send = true;
+                    break;
+                }
+            }
+        }
+        if ( send==false ){
+            socket.broadcast.emit('message:delete', obj);
+        }
     });
 
     //  Новый чат
@@ -100,7 +115,7 @@ io.on('connection', function (socket) {
         if (obj.user_to!=undefined){
             for( var i in connected ){
                 if (connected[i].user===obj.user_to ){
-                    io.to(connected[i].socket).emit('server:read_chat', obj);
+                    io.to(connected[i].socket).emit('server:read_chat', obj.chat_id);
                     send = true;
                     break;
                 }
@@ -126,7 +141,6 @@ io.on('connection', function (socket) {
         }
         io.sockets.emit('who_is_online', connected);
         io.sockets.emit('debug', 'User connected '+user_id);
-
     });
     
 
