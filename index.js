@@ -49,6 +49,9 @@ io.on('connection', function (socket) {
 
    // console.log('a user connected '+client_host);
   // socket.join(client_host);
+    if ( args.indexOf('refresh')!==-1){
+        socket.broadcast.emit('refresh');
+    }
 
     io.sockets.emit('connect', socket.id);
 
@@ -69,7 +72,7 @@ io.on('connection', function (socket) {
     
     });
     
-
+   
 
     //  новое сообщение
     socket.on('message', function (obj) {
