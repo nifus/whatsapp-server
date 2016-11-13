@@ -105,8 +105,25 @@ io.on('connection', function (socket) {
     });
 
     //  Новый чат
-    socket.on('chat', function (chat, users) {
-        socket.broadcast.emit('create_chat', {chat: chat, users: users});
+    socket.on('client:create-chat', function (chat, users) {
+        for( var i in users){
+             for( var j in connected ){
+                if (connected[j].user===users[i] ){
+                    io.to(connected[j].socket).emit('server:create-chat', chat);
+                }
+            }
+        }
+    });
+
+
+    socket.on('client:chat-delete', function (response) {
+        var users = response.users;
+        var chat = response.chat;
+            for( var i in connected ){
+                if ( users.indexOf(connected[i].user)!==-1 ){
+                    io.to(connected[i].socket).emit('server:chat-delete', chat);
+                }
+            }
     });
 
     // чтение сообщений в чате
