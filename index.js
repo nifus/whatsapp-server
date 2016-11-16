@@ -25,6 +25,10 @@ if ( args.indexOf('ssl')==-1){
     server.listen(port);
 }
 
+app.get('/', function (req, res) {
+     res.send('Hello World!');
+     process.exit()
+ });
 
 
 var io = require('socket.io').listen(server);
