@@ -54,29 +54,26 @@ io.on('connection', function (socket) {
    // console.log('a user connected '+client_host);
   // socket.join(client_host);
     if ( args.indexOf('refresh')!==-1){
-        socket.broadcast.emit('refresh');
+        socket.emit('refresh');
     }
 
     io.sockets.emit('connect', socket.id);
 
     //  клиент отключился, по его ID исключаем его из массива
     socket.on('disconnect', function (value ) {
-
             connected = connected.filter(function (rec) {
                 if (rec.socket !== socket.id) {
                     return true;
                 }
                 return false;
             });
-
             io.sockets.emit('debug', connected.length);
-
         //  оповещаем всех что изменился список
         io.sockets.emit('who_is_online', connected);
-    
     });
     
    
+    
 
     //  новое сообщение
     socket.on('message', function (obj) {
@@ -111,6 +108,22 @@ io.on('connection', function (socket) {
         }
     });
 
+    socket.on('message-edit', function (obj) {
+        var send = false;
+        if (obj.user_to!=undefined){
+            for( var i in connected ){
+                if (connected[i].user===obj.user_to ){
+                    io.to(connected[i].socket).emit('message:edit', obj);
+                    send = true;
+                    break;
+                }
+            }
+        }
+        if ( send==false ){
+            socket.broadcast.emit('message:edit', obj);
+        }
+    });
+
     //  Новый чат
     socket.on('client:create-chat', function (chat, users) {
         for( var i in users){
@@ -121,6 +134,17 @@ io.on('connection', function (socket) {
             }
         }
     });
+
+    socket.on('client:chat-update', function (chat, users) {
+        for( var i in users){
+             for( var j in connected ){
+                if (connected[j].user===users[i] ){
+                    io.to(connected[j].socket).emit('server:chat-update', chat);
+                }
+            }
+        }
+    });
+
 
 
     socket.on('client:chat-delete', function (response) {
