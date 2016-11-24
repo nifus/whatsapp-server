@@ -14,7 +14,7 @@ var fs = require( 'fs' );
 var app = require('express')();
 if ( args.indexOf('ssl')==-1){
     var http        = require('http');
-    var server = http.createServer();
+    var server = http.createServer(app);
     server.listen(port);
 }else{
     var https        = require('https');
@@ -27,7 +27,7 @@ if ( args.indexOf('ssl')==-1){
 
 app.get('/', function (req, res) {
      res.send('Hello World!');
-     process.exit()
+     //process.exit()
  });
 
 
